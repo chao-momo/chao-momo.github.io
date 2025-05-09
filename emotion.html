@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>情绪分类大挑战</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive;
+            background: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);
+            margin: 20px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .title {
+            color: #ff6b6b;
+            font-size: 2.5em;
+            text-shadow: 2px 2px #fff;
+            margin-bottom: 30px;
+        }
+
+        .categories {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .category-box {
+            width: 180px;
+            min-height: 120px;
+            border: 4px solid;
+            border-radius: 15px;
+            padding: 15px;
+            background: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            position: relative;
+            touch-action: none;
+        }
+
+        .positive { border-color: #77dd77; }
+        .negative { border-color: #ff6961; }
+
+        .emotions-box {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .emotion-img {
+            width: 90px;
+            height: 90px;
+            object-fit: contain;
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.9);
+            padding: 5px;
+            touch-action: none;
+        }
+
+        .emotion-img.dragging {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .feedback {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 10px;
+            display: none;
+            z-index: 999;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            white-space: nowrap;
+        }
+
+        .correct { 
+            background: rgba(119, 221, 119, 0.9); 
+            animation: floatUp 0.5s ease-out;
+        }
+        .wrong { 
+            background: rgba(255, 105, 97, 0.9);
+            animation: shake 0.5s ease;
+        }
+
+        .button {
+            background: #ffd700;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 20px;
+            cursor: pointer;
+            margin: 15px;
+            box-shadow: 0 4px #ffb700;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+
+        .button:hover {
+            background: #ffdf33;
+        }
+
+        .result {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px auto;
+            width: 90%;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translate(-50%, 0); opacity: 0; }
+            100% { transform: translate(-50%, -20px); opacity: 1; }
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(-50%); }
+            25% { transform: translateX(-55%); }
+            50% { transform: translateX(-45%); }
+            75% { transform: translateX(-55%); }
+            100% { transform: translateX(-50%); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">情绪分类大挑战！🌈</h1>
+        
+        <div class="categories">
+            <div class="category-box positive" 
+                 ondragover="allowDrop(event)" 
+                 ondrop="drop(event)">
+                <h3>😊 积极情绪</h3>
+                <div class="feedback"></div>
+            </div>
+            <div class="category-box negative" 
+                 ondragover="allowDrop(event)" 
+                 ondrop="drop(event)">
+                <h3>😟 消极情绪</h3>
+                <div class="feedback"></div>
+            </div>
+        </div>
+
+        <div class="emotions-box" id="sourceBox">
+            <img src="https://cdn.z.wiki/autoupload/20250506/v42z/1080X1439/happy.png.jpg" 
+                 class="emotion-img" draggable="true" data-emotion="happy" data-correct="positive">
+            <img src="https://hv.z.wiki/autoupload/20250506/NN3D/1080X1439/angry.png.jpg" 
+                 class="emotion-img" draggable="true" data-emotion="angry" data-correct="negative">
+            <img src="https://cdn.z.wiki/autoupload/20250506/nZNi/1080X1439/sad.png.jpg" 
+                 class="emotion-img" draggable="true" data-emotion="sad" data-correct="negative">
+            <img src="https://hv.z.wiki/autoupload/20250506/eAhO/1080X1439/afraid.png.jpg" 
+                 class="emotion-img" draggable="true" data-emotion="afraid" data-correct="negative">
+        </div>
+
+        <button class="button" onclick="checkCompletion()">提交答案</button>
+        <button class="button" onclick="resetGame()">重新开始</button>
+
+        <div id="resultBox" class="result">
+            <h2>🎉 恭喜你，分类成功！</h2>
+            <p>正确答案：</p>
+            <p>积极情绪：😊 开心</p>
+            <p>消极情绪：😠 愤怒 😢 悲伤 😨 害怕</p>
+            <button class="button" onclick="resetGame()">再来一次</button>
+        </div>
+    </div>
+
+    <script>
+        let draggedElement = null;
+        let startX, startY, initialX, initialY;
+
+        // 触摸事件处理
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            draggedElement = e.target;
+            
+            const rect = draggedElement.getBoundingClientRect();
+            startX = touch.clientX - rect.left;
+            startY = touch.clientY - rect.top;
+            initialX = rect.left;
+            initialY = rect.top;
+            
+            draggedElement.classList.add('dragging');
+            draggedElement.style.position = 'fixed';
+            draggedElement.style.zIndex = '1000';
+            draggedElement.style.left = `${rect.left}px`;
+            draggedElement.style.top = `${rect.top}px`;
+            draggedElement.style.width = `${rect.width}px`;
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (!draggedElement) return;
+            const touch = e.touches[0];
+            
+            draggedElement.style.left = `${touch.clientX - startX}px`;
+            draggedElement.style.top = `${touch.clientY - startY}px`;
+        }
+
+        function handleTouchEnd(e) {
+            if (!draggedElement) return;
+            
+            const boxes = document.querySelectorAll('.category-box');
+            let targetBox = null;
+            const elementRect = draggedElement.getBoundingClientRect();
+
+            boxes.forEach(box => {
+                const boxRect = box.getBoundingClientRect();
+                if (elementRect.left < boxRect.right &&
+                    elementRect.right > boxRect.left &&
+                    elementRect.top < boxRect.bottom &&
+                    elementRect.bottom > boxRect.top) {
+                    targetBox = box;
+                }
+            });
+
+            if (targetBox) {
+                handleDrop(targetBox, draggedElement);
+            } else {
+                returnToSource(draggedElement);
+            }
+
+            resetElementState();
+        }
+
+        // 鼠标事件处理
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function dragStart(ev) {
+            ev.dataTransfer.setData("text", ev.target.id);
+            draggedElement = ev.target;
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            const targetBox = ev.target.closest('.category-box');
+            if (targetBox && draggedElement) {
+                handleDrop(targetBox, draggedElement);
+            }
+        }
+
+        // 通用处理函数
+        function handleDrop(targetBox, element) {
+            const feedback = targetBox.querySelector('.feedback');
+            const correctType = element.dataset.correct;
+            const targetType = targetBox.classList.contains('positive') ? 'positive' : 'negative';
+            
+            if (correctType === targetType) {
+                targetBox.appendChild(element);
+                showFeedback(feedback, '答对了！', 'correct');
+            } else {
+                showFeedback(feedback, '好像不对哦，再想想', 'wrong');
+                returnToSource(element);
+            }
+        }
+
+        function returnToSource(element) {
+            const sourceBox = document.getElementById('sourceBox');
+            element.style.transition = 'all 0.3s';
+            element.style.position = 'static';
+            
+            setTimeout(() => {
+                sourceBox.appendChild(element);
+                element.style.transition = '';
+            }, 300);
+        }
+
+        function resetElementState() {
+            if (!draggedElement) return;
+            
+            draggedElement.classList.remove('dragging');
+            draggedElement.style.position = '';
+            draggedElement.style.zIndex = '';
+            draggedElement.style.left = '';
+            draggedElement.style.top = '';
+            draggedElement.style.width = '';
+            draggedElement = null;
+        }
+
+        function showFeedback(element, text, type) {
+            element.textContent = text;
+            element.className = `feedback ${type}`;
+            element.style.display = 'block';
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 2000);
+        }
+
+        function checkCompletion() {
+            const remaining = document.getElementById('sourceBox').children.length;
+            const misplaced = document.querySelectorAll('.category-box .emotion-img[data-correct]');
+            
+            let allCorrect = remaining === 0;
+            
+            misplaced.forEach(img => {
+                const boxType = img.parentElement.classList.contains('positive') ? 'positive' : 'negative';
+                if (img.dataset.correct !== boxType) allCorrect = false;
+            });
+
+            document.getElementById('resultBox').style.display = allCorrect ? 'block' : 'none';
+        }
+
+        function resetGame() {
+            document.querySelectorAll('.category-box').forEach(box => {
+                box.innerHTML = box.classList.contains('positive') 
+                    ? '<h3>😊 积极情绪</h3><div class="feedback"></div>' 
+                    : '<h3>😟 消极情绪</h3><div class="feedback"></div>';
+            });
+
+            const sourceBox = document.getElementById('sourceBox');
+            sourceBox.innerHTML = `
+                <img src="https://cdn.z.wiki/autoupload/20250506/v42z/1080X1439/happy.png.jpg" 
+                     class="emotion-img" draggable="true" data-emotion="happy" data-correct="positive">
+                <img src="https://hv.z.wiki/autoupload/20250506/NN3D/1080X1439/angry.png.jpg" 
+                     class="emotion-img" draggable="true" data-emotion="angry" data-correct="negative">
+                <img src="https://cdn.z.wiki/autoupload/20250506/nZNi/1080X1439/sad.png.jpg" 
+                     class="emotion-img" draggable="true" data-emotion="sad" data-correct="negative">
+                <img src="https://hv.z.wiki/autoupload/20250506/eAhO/1080X1439/afraid.png.jpg" 
+                     class="emotion-img" draggable="true" data-emotion="afraid" data-correct="negative">
+            `;
+
+            initEvents();
+            document.getElementById('resultBox').style.display = 'none';
+        }
+
+        function initEvents() {
+            document.querySelectorAll('.emotion-img').forEach(img => {
+                img.ondragstart = dragStart;
+                img.addEventListener('touchstart', handleTouchStart, { passive: false });
+                img.addEventListener('touchmove', handleTouchMove, { passive: false });
+                img.addEventListener('touchend', handleTouchEnd, { passive: false });
+            });
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', initEvents);
+    </script>
+</body>
+</html>
